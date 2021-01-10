@@ -2612,6 +2612,9 @@ Lossy :: !Fixed p -> AsFixed p
 asFixed :: KnownNat p => RealNumber p -> AsFixed (NatPrec p)
 toFixed :: KnownNat p => RealNumber p -> Fixed (NatPrec p)
 fromFixed :: KnownNat p => Fixed (NatPrec p) -> RealNumber p
+
+-- | (Kind) This is the kind of type-level natural numbers.
+data Nat
 instance GHC.Classes.Eq (Data.RealNumber.Rational.AsFixed p)
 instance Data.Fixed.HasResolution p => GHC.Show.Show (Data.RealNumber.Rational.AsFixed p)
 instance Data.Hashable.Class.Hashable (Data.RealNumber.Rational.RealNumber p)
@@ -3380,6 +3383,7 @@ map :: (a -> b) -> CircularVector a -> CircularVector b
 --   Running time: &lt;math&gt;
 withIndicesRight :: CircularVector a -> CircularVector (Int :+ a)
 imap :: (Int -> a -> b) -> CircularVector a -> CircularVector b
+ifilter :: (Int -> a -> Bool) -> CircularVector a -> Vector a
 instance Data.Semigroup.Foldable.Class.Foldable1 Data.Vector.NonEmpty.Internal.NonEmptyVector
 instance Test.QuickCheck.Arbitrary.Arbitrary a => Test.QuickCheck.Arbitrary.Arbitrary (Data.Vector.Circular.CircularVector a)
 
