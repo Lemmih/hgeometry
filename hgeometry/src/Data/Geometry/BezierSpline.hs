@@ -7,7 +7,8 @@
 -- Maintainer  :  Frank Staals
 --------------------------------------------------------------------------------
 module Data.Geometry.BezierSpline(
-    BezierSpline (BezierSpline)
+    BezierSpline (BezierSpline, Bezier2, Bezier3, CubicBezier)
+  , QuadBezier, CubicBezier
   , controlPoints
   , fromPointSeq
 
@@ -19,12 +20,14 @@ module Data.Geometry.BezierSpline(
   , parameterOf
   , snap
 
-  , pattern Bezier2, pattern Bezier3
+  , LineJoin(..)
+  , colinear
   ) where
 
 import           Control.Lens hiding (Empty)
 import qualified Data.Foldable as F
 import           Data.Geometry.Point
+import           Data.Geometry.Line
 import           Data.Geometry.Properties
 import           Data.Geometry.Transformation
 import           Data.Geometry.Vector
@@ -46,19 +49,27 @@ newtype BezierSpline n d r = BezierSpline { _controlPoints :: LSeq (1+n) (Point 
 controlPoints :: Iso (BezierSpline n1 d1 r1) (BezierSpline n2 d2 r2) (LSeq (1+n1) (Point d1 r1)) (LSeq (1+n2) (Point d2 r2))
 controlPoints = iso _controlPoints BezierSpline
 
+type QuadBezier d r = BezierSpline 2 d r
+type CubicBezier d r = BezierSpline 3 d r
+
 -- | Quadratic Bezier Spline
-pattern Bezier2      :: Point d r -> Point d r -> Point d r -> BezierSpline 2 d r
+pattern Bezier2      :: Point d r -> Point d r -> Point d r -> QuadBezier d r
 pattern Bezier2 p q r <- (F.toList . LSeq.take 3 . _controlPoints -> [p,q,r])
   where
     Bezier2 p q r = fromPointSeq . Seq.fromList $ [p,q,r]
 {-# COMPLETE Bezier2 #-}
 
 -- | Cubic Bezier Spline
-pattern Bezier3         :: Point d r -> Point d r -> Point d r -> Point d r -> BezierSpline 3 d r
+pattern Bezier3         :: Point d r -> Point d r -> Point d r -> Point d r -> CubicBezier d r
 pattern Bezier3 p q r s <- (F.toList . LSeq.take 4 . _controlPoints -> [p,q,r,s])
   where
     Bezier3 p q r s = fromPointSeq . Seq.fromList $ [p,q,r,s]
 {-# COMPLETE Bezier3 #-}
+
+-- | Cubic Bezier Spline
+pattern CubicBezier         :: Point d r -> Point d r -> Point d r -> Point d r -> CubicBezier d r
+pattern CubicBezier p q r s = Bezier3 p q r s
+{-# COMPLETE CubicBezier #-}
 
 deriving instance (Arity d, Eq r) => Eq (BezierSpline n d r)
 
@@ -177,3 +188,35 @@ derivative f x = (f (x + delta) - f x) / delta
 -- | Snap a point close to a Bezier curve to the curve.
 snap   :: (Arity d, Ord r, Fractional r) => BezierSpline n d r -> Point d r -> Point d r
 snap b = evaluate b . parameterOf b
+
+--------------------------------------------------------------------------------
+
+data LineJoin r
+  = JoinLine
+  | JoinCurve (Vector 2 r)
+
+-- If both control points are on the same side of the straight line from start to end:
+--   Max width is the distance from the straight line to the control point furthest away
+--   multiplied by 3/4. Since we're computing the square distance, we instead multiply
+--   by '(3/4)^2' which is 9/16=0.5625.
+-- If control points are on either side:
+--   Max width is the distance from the straight line to the control point multiplied by
+--   4/9. We're using square distances and therefore multiply by '(4/9)^2' which is
+--   16/81.
+--
+-- Why do we square the correction factor?
+-- Because: x * sqrt(v) = sqrt(v*(x^2))
+-- | Returns true iff the bezier curve is entirely within a straight line of a given thickness.
+--
+--   That is, if 'colinear' returns True for a thickness of '1' then no point on the curve
+--   will be further away than 0.5 units from the straight line.
+colinear :: (Fractional r, Ord r) => CubicBezier 2 r -> r -> Bool
+colinear (CubicBezier a b c d) eps = d1 < radiusSquared && d2 < radiusSquared
+  where ld = flip sqDistanceTo (lineThrough a d)
+        d1 = correctionFactor*ld b
+        d2 = correctionFactor*ld c
+        sameSide = ccw a d b == ccw a d c
+        correctionFactor
+          | sameSide  = (3/4)^2
+          | otherwise = (4/9)^2
+        radiusSquared = (eps/2)^2
