@@ -2419,6 +2419,29 @@ mstEdges :: Ord e => PlanarGraph s w v e f -> [Dart s]
 --   pre: the planar graph has at least one vertex.
 makeTree :: forall s w v e f. PlanarGraph s w v e f -> [Dart s] -> Tree (VertexId s w)
 
+module Data.PlanarGraph.Persistent
+
+-- | The world in which the graph lives
+data World
+Primal :: World
+Dual :: World
+type HalfEdge = Int
+type Vertex = Int
+type Face = Int
+data PlanarGraph
+PlanarGraph :: HalfEdge -> Vertex -> Face -> HashMap HalfEdge HalfEdge -> HashMap HalfEdge Vertex -> HashMap HalfEdge Face -> HashMap Vertex HalfEdge -> HashMap Face HalfEdge -> PlanarGraph
+[pgNextHalfEdgeId] :: PlanarGraph -> HalfEdge
+[pgNextVertexId] :: PlanarGraph -> Vertex
+[pgNextFaceId] :: PlanarGraph -> Face
+[pgNext] :: PlanarGraph -> HashMap HalfEdge HalfEdge
+[pgVertex] :: PlanarGraph -> HashMap HalfEdge Vertex
+[pgFace] :: PlanarGraph -> HashMap HalfEdge Face
+[pgHalfEdgeFromVertex] :: PlanarGraph -> HashMap Vertex HalfEdge
+[pgHalfEdgeFromFace] :: PlanarGraph -> HashMap Face HalfEdge
+new :: Int -> PlanarGraph
+instance GHC.Classes.Eq Data.PlanarGraph.Persistent.World
+instance GHC.Show.Show Data.PlanarGraph.Persistent.World
+
 
 -- | Data type for representing Generic Ranges (Intervals) and functions
 --   that work with them.
@@ -2474,8 +2497,8 @@ pattern Range' :: a -> a -> Range a
 --   "(0,5]"
 --   </pre>
 prettyShow :: Show a => Range a -> String
-lower :: forall a_aR98. Lens' (Range a_aR98) (EndPoint a_aR98)
-upper :: forall a_aR98. Lens' (Range a_aR98) (EndPoint a_aR98)
+lower :: forall a_aRd6. Lens' (Range a_aRd6) (EndPoint a_aRd6)
+upper :: forall a_aRd6. Lens' (Range a_aRd6) (EndPoint a_aRd6)
 
 -- | Test if a value lies in a range.
 --   
@@ -3080,10 +3103,10 @@ MinInfinity :: UnBounded a
 Val :: a -> UnBounded a
 [_unUnBounded] :: UnBounded a -> a
 MaxInfinity :: UnBounded a
-unUnBounded :: forall a_aZRI a_a11v6. Traversal (UnBounded a_aZRI) (UnBounded a_a11v6) a_aZRI a_a11v6
-_MinInfinity :: forall a_aZRI. Prism' (UnBounded a_aZRI) ()
-_Val :: forall a_aZRI a_a11xZ. Prism (UnBounded a_a11xZ) (UnBounded a_aZRI) a_a11xZ a_aZRI
-_MaxInfinity :: forall a_aZRI. Prism' (UnBounded a_aZRI) ()
+unUnBounded :: forall a_aZVG a_a11z4. Traversal (UnBounded a_aZVG) (UnBounded a_a11z4) a_aZVG a_a11z4
+_MinInfinity :: forall a_aZVG. Prism' (UnBounded a_aZVG) ()
+_Val :: forall a_aZVG a_a11BX. Prism (UnBounded a_a11BX) (UnBounded a_aZVG) a_a11BX a_aZVG
+_MaxInfinity :: forall a_aZVG. Prism' (UnBounded a_aZVG) ()
 
 -- | Test if an Unbounded is actually bounded.
 --   
