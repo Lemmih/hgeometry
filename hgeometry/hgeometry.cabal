@@ -163,6 +163,8 @@ library
                     Algorithms.Geometry.PolygonTriangulation.TriangulateMonotone
                     Algorithms.Geometry.PolygonTriangulation.EarClip
 
+                    Algorithms.Geometry.ACD.HertelMehlhorn
+
                     Algorithms.Geometry.LineSegmentIntersection
                     Algorithms.Geometry.LineSegmentIntersection.Naive
                     Algorithms.Geometry.LineSegmentIntersection.BentleyOttmann

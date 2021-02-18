@@ -321,7 +321,7 @@ instance Hashable PlanarGraph where
   hashWithSalt salt = hashWithSalt salt . pgHash
   hash = pgHash
 
--- | O(n)
+-- | \( O(n) \)
 -- 
 -- @since 0.12.0.0
 pgHash :: PlanarGraph -> Int
@@ -824,7 +824,7 @@ halfEdgeVertex :: HalfEdge -> PlanarGraph -> Vertex
 halfEdgeVertex (HalfEdge idx) pg = halfEdgeCheck "halfEdgeVertex" idx pg $
   Vertex $ pgHalfEdgeVertex pg Vector.! idx
 
--- | O(1)
+-- | \( O(1) \)
 --
 --   Tail-end of a half-edge. Synonym of 'halfEdgeVertex'.
 --
@@ -844,7 +844,7 @@ halfEdgeVertex (HalfEdge idx) pg = halfEdgeCheck "halfEdgeVertex" idx pg $
 halfEdgeTailVertex :: HalfEdge -> PlanarGraph -> Vertex
 halfEdgeTailVertex e pg = halfEdgeVertex e pg
 
--- | O(1)
+-- | \( O(1) \)
 --
 --   Tip-end of a half-edge. This is the tail-end vertex of the twin half-edge.
 --
@@ -1074,7 +1074,7 @@ faceMember face@(Boundary fId) pg =
 -- faceIsInvalid (Face fId)     = fId == maxBound
 -- faceIsInvalid (Boundary fId) = fId == maxBound
 
--- | O(1)
+-- | \( O(1) \)
 --
 -- @since 0.12.0.0
 faceFromId :: FaceId -> Face

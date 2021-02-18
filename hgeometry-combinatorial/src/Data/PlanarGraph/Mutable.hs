@@ -67,7 +67,7 @@ module Data.PlanarGraph.Mutable
   , pgConnectVertices -- :: HalfEdge s -> HalfEdge s -> ST s (Edge s)
 -- pgSplitHalfEdge :: HalfEdge s -> ST s (Vertex s)
 
--- pgRemoveFace :: Face s -> ST s ()
+  , pgRemoveEdge      -- :: Edge s -> ST s ()
 -- pgRemoveHalfEdge :: HalfEdge s -> ST s ()
 -- pgRemoveVertex :: Vertex s -> ST s ()
     -- * Misc
@@ -493,6 +493,17 @@ halfEdgeNew pg = do
   writeSTRef (pgNextHalfEdgeId pg) (eId+1)
   return (HalfEdge (eId*2) pg)
 
+halfEdgeSetInvalid :: HalfEdge s -> ST s ()
+halfEdgeSetInvalid (HalfEdge e pg) = do
+  writeVector (pgHalfEdgeNext pg) e (-1)
+  writeVector (pgHalfEdgePrev pg) e (-1)
+  writeVector (pgHalfEdgeVertex pg) e (-1)
+
+halfEdgeLink :: HalfEdge s -> HalfEdge s -> ST s ()
+halfEdgeLink (HalfEdge prev pg) (HalfEdge next pg') = eqCheck "halfEdgeLink" pg pg' $ do
+  writeVector (pgHalfEdgeNext pg) prev next
+  writeVector (pgHalfEdgePrev pg) next prev
+
 halfEdgeSetNext :: HalfEdge s -> HalfEdge s -> ST s ()
 halfEdgeSetNext (HalfEdge e pg) (HalfEdge next pg') = eqCheck "halfEdgeSetNext" pg pg' $
   -- trace ("Set next: " ++ show (e, next)) $
@@ -578,6 +589,21 @@ faceHalfEdges face
       freezeCircularVector i tmp
 
 -- | O(k)
+faceWithHalfEdges        :: Face s -> (HalfEdge s -> ST s ()) -> ST s ()
+faceWithHalfEdges face cb
+  | faceIsBoundary face = worker halfEdgeNext
+  | otherwise           = worker halfEdgePrev
+  where
+    worker advance = do
+      first <- faceHalfEdge face
+      cb first
+      let loop edge | edge == first = return ()
+          loop edge = do
+            cb edge
+            loop =<< advance edge
+      loop =<< advance first
+
+-- | O(k)
 faceBoundary :: Face s -> ST s (CircularVector (Vertex s))
 faceBoundary face = CV.mapM halfEdgeVertex =<< faceHalfEdges face
 
@@ -594,6 +620,12 @@ faceNewBoundary pg = do
   fId <- readSTRef (pgNextBoundaryId pg)
   writeSTRef (pgNextBoundaryId pg) (fId+1)
   return (Boundary fId pg)
+
+faceSetInvalid :: Face s -> ST s ()
+faceSetInvalid (Boundary fId pg) =
+  writeVector (pgBoundaryEdges pg) fId (-1)
+faceSetInvalid (Face fId pg) =
+  writeVector (pgFaceEdges pg) fId (-1)
 
 faceSetHalfEdge :: Face s -> HalfEdge s -> ST s ()
 faceSetHalfEdge (Boundary fId pg) (HalfEdge eId pg') = eqCheck "faceSetHalfEdge" pg pg' $
@@ -669,7 +701,30 @@ pgConnectVertices e1 e2 =
 
 -- pgInsertVertex :: HalfEdge s -> ST s (Vertex s)
 
--- pgRemoveEdge :: Edge s -> ST s ()
+-- | O(k)
+pgRemoveEdge :: Edge s -> ST s ()
+pgRemoveEdge edge = do
+    he'Face <- halfEdgeFace he'
+    heFace <- halfEdgeFace he
+    unless (faceIsInterior heFace && faceIsInterior he'Face) $
+      panic "pgRemoveEdge" "Can only remove interior edges"
+
+    faceWithHalfEdges he'Face $ \subHe ->
+      halfEdgeSetFace subHe heFace
+
+    hePrev <- halfEdgePrev he
+    heNext <- halfEdgeNext he
+    he'Prev <- halfEdgePrev he'
+    he'Next <- halfEdgeNext he'
+    halfEdgeLink hePrev he'Next
+    halfEdgeLink he'Prev heNext
+    halfEdgeSetInvalid he
+    halfEdgeSetInvalid he'
+    faceSetInvalid he'Face
+  where
+    (he, he') = edgeToHalfEdges edge
+
+
 -- pgRemoveEdges :: [Edge s] -> ST s ()
 -- pgRemoveVertex :: Vertex s -> ST s ()
 -- pgRemoveBorder :: Edge s -> ST s ()
